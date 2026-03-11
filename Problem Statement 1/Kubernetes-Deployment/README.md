@@ -48,13 +48,13 @@ kubectl get nodes
 Build the Wisecow container image.
 
 ```bash
-docker build -t <your-dockerhub-username>/wisecow:latest .
+docker build -t abhaydandgedocker/wisecow:2026 .
 ```
 
 Push the image to Docker Hub.
 
 ```bash
-docker push <your-dockerhub-username>/wisecow:latest
+docker push abhaydandgedocker/wisecow:2026
 ```
 
 ---
@@ -64,7 +64,7 @@ docker push <your-dockerhub-username>/wisecow:latest
 Apply the deployment manifest.
 
 ```bash
-kubectl apply -f deployment.yaml
+kubectl apply -f wisecow-deployment.yml
 ```
 
 Verify pods are running.
@@ -80,7 +80,7 @@ kubectl get pods
 Apply the service manifest.
 
 ```bash
-kubectl apply -f service.yaml
+kubectl apply -f wisecow-service.yml
 ```
 
 Verify the service.
@@ -134,7 +134,7 @@ kubectl get secrets
 Apply the ingress configuration.
 
 ```bash
-kubectl apply -f ingress.yaml
+kubectl apply -f ingress.yml
 ```
 
 Check ingress status.
@@ -210,32 +210,6 @@ curl -k https://wisecow.example.com
 The `-k` flag skips certificate verification since this is a self-signed certificate.
 
 ---
-
-# Useful Verification Commands
-
-Check pods
-
-```bash
-kubectl get pods
-```
-
-Check services
-
-```bash
-kubectl get svc
-```
-
-Check ingress
-
-```bash
-kubectl get ingress
-```
-
-Check secrets
-
-```bash
-kubectl get secrets
-```
 
 ---
 
