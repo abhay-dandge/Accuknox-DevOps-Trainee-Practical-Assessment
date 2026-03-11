@@ -1,0 +1,71 @@
+name: Wisecow CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: wisecow
+  REGISTRY: docker.io
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Generate Image Tag
+      id: tag
+      run: echo "tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+
+    - name: Login to DockerHub
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u $DOCKER_USERNAME --password-stdin
+
+    - name: Build Docker Image
+      run: |
+        docker build -t $DOCKER_USERNAME/$IMAGE_NAME:${{ steps.tag.outputs.tag }} .
+
+    - name: Push Docker Image
+      run: |
+        docker push $DOCKER_USERNAME/$IMAGE_NAME:${{ steps.tag.outputs.tag }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+
+ steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set Image Tag
+      run: echo "TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+
+    - name: Build Docker Image
+      run: |
+        docker build -t $IMAGE_NAME:$TAG .
+
+    - name: Load Image to Kind
+      run: |
+        kind load docker-image $IMAGE_NAME:$TAG --name wisecow
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f deployment.yaml
+        kubectl set image deployment/wisecow wisecow=$IMAGE_NAME:$TAG
+
+    - name: Verify Deployment
+      run: |
+        kubectl rollout status deployment/wisecow
