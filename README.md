@@ -42,7 +42,7 @@ To containerize and deploy the **Wisecow application** from [this repository](ht
 ### 🎯 Objective  
 Develop automation scripts for monitoring Linux systems and analyzing server logs.  
 
-### 🔑 Requirements  
+### 🔑 Requirements & Deliverables    
 
 1. **Log File Analyzer Script**  
    - Parse Apache/Nginx logs.  
@@ -52,8 +52,11 @@ Develop automation scripts for monitoring Linux systems and analyzing server log
      - Top IPs by request volume  
    - Output a summarized report.  
 
-### 📦 Deliverables   
-- Sample log files & generated reports  
+1. **Application Health Checker Script**  
+   - Accepts an **application URL** as input.  
+   - Uses `curl` to retrieve the HTTP status code.  
+   - Verifies if the application is responding correctly.  
+   - Displays the **HTTP status code** and indicates whether the application is **UP or DOWN**.
 
 ---
 
