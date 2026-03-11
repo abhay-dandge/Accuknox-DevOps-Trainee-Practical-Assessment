@@ -1,12 +1,9 @@
-# Wisecow Kubernetes Deployment with TLS
+# Wisecow Kubernetes Deployment Guide (TLS Enabled)
 
-## Project Overview
+This guide explains how to deploy the **Wisecow application on Kubernetes with TLS enabled**.  
+All required Kubernetes manifests (**deployment.yaml, service.yaml, ingress.yaml**) are already available in this repository.
 
-This project demonstrates the **containerization and deployment of the Wisecow application into a Kubernetes cluster** with **secure TLS communication**.
-
-The objective is to implement modern **DevOps practices**, including containerization, Kubernetes deployment, and secure HTTPS access.
-
-The application runs on **port 4499** inside the container and is exposed to users through **Kubernetes Service and Ingress with TLS encryption**.
+The Wisecow application runs on **port 4499** inside the container.
 
 ---
 
@@ -14,91 +11,63 @@ The application runs on **port 4499** inside the container and is exposed to use
 
 ```
 User
-│
-│ HTTPS
-▼
+ │
+ │ HTTPS
+ ▼
 Ingress Controller (TLS termination)
-│
-│ HTTP
-▼
+ │
+ │ HTTP
+ ▼
 Kubernetes Service
-│
-▼
+ │
+ ▼
 Wisecow Pod (Port 4499)
 ```
 
-Flow explanation:
-
-1. User sends HTTPS request.
-2. Ingress controller handles TLS termination.
-3. Traffic is forwarded to the Kubernetes service.
-4. The service routes the request to the Wisecow pod running on port **4499**.
-
 ---
 
-# Project Structure
+# Prerequisites
 
-```
-wisecow-k8s
-│
-├── Dockerfile
-├── deployment.yaml
-├── service.yaml
-├── ingress.yaml
-└── README.md
-```
+Make sure the following tools are installed:
 
----
+- Docker
+- Kubernetes cluster (Minikube / Kind / Kubeadm / Cloud)
+- kubectl
+- OpenSSL
 
-# Step 1: Containerize the Application
-
-Build the Docker image.
+Check kubectl access:
 
 ```bash
-docker build -t your-dockerhub/wisecow:latest .
+kubectl get nodes
+```
+
+---
+
+# Step 1 — Build the Docker Image
+
+Build the Wisecow container image.
+
+```bash
+docker build -t <your-dockerhub-username>/wisecow:latest .
 ```
 
 Push the image to Docker Hub.
 
 ```bash
-docker push your-dockerhub/wisecow:latest
+docker push <your-dockerhub-username>/wisecow:latest
 ```
 
 ---
 
-# Step 2: Create Kubernetes Deployment
+# Step 2 — Deploy the Application
 
-`deployment.yaml`
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wisecow
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: wisecow
-  template:
-    metadata:
-      labels:
-        app: wisecow
-    spec:
-      containers:
-      - name: wisecow
-        image: your-dockerhub/wisecow:latest
-        ports:
-        - containerPort: 4499
-```
-
-Apply the deployment.
+Apply the deployment manifest.
 
 ```bash
 kubectl apply -f deployment.yaml
 ```
 
-Verify pods:
+Verify pods are running.
 
 ```bash
 kubectl get pods
@@ -106,43 +75,31 @@ kubectl get pods
 
 ---
 
-# Step 3: Create Service
+# Step 3 — Create Kubernetes Service
 
-The service exposes the application inside the cluster.
-
-`service.yaml`
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: wisecow-service
-spec:
-  selector:
-    app: wisecow
-  ports:
-  - port: 80
-    targetPort: 4499
-  type: ClusterIP
-```
-
-Apply the service.
+Apply the service manifest.
 
 ```bash
 kubectl apply -f service.yaml
 ```
 
-Verify:
+Verify the service.
 
 ```bash
 kubectl get svc
 ```
 
+The service forwards traffic:
+
+```
+Port 80 → Container Port 4499
+```
+
 ---
 
-# Step 4: Generate TLS Certificate
+# Step 4 — Generate TLS Certificate
 
-Generate a self-signed certificate for testing.
+Create a self-signed TLS certificate.
 
 ```bash
 openssl req -x509 -nodes -days 365 \
@@ -152,7 +109,11 @@ openssl req -x509 -nodes -days 365 \
 -subj "/CN=wisecow.example.com"
 ```
 
-Create Kubernetes TLS secret.
+---
+
+# Step 5 — Create Kubernetes TLS Secret
+
+Create a TLS secret for Kubernetes.
 
 ```bash
 kubectl create secret tls wisecow-tls \
@@ -160,7 +121,7 @@ kubectl create secret tls wisecow-tls \
 --key=tls.key
 ```
 
-Verify:
+Verify the secret.
 
 ```bash
 kubectl get secrets
@@ -168,34 +129,9 @@ kubectl get secrets
 
 ---
 
-# Step 5: Configure Ingress with TLS
+# Step 6 — Deploy Ingress
 
-`ingress.yaml`
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: wisecow-ingress
-spec:
-  tls:
-  - hosts:
-    - wisecow.example.com
-    secretName: wisecow-tls
-  rules:
-  - host: wisecow.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: wisecow-service
-            port:
-              number: 80
-```
-
-Apply ingress.
+Apply the ingress configuration.
 
 ```bash
 kubectl apply -f ingress.yaml
@@ -209,29 +145,29 @@ kubectl get ingress
 
 ---
 
-# Step 6: Install Ingress Controller
+# Step 7 — Install NGINX Ingress Controller
 
-Ingress resources require a controller.
+Ingress requires a controller to route traffic.
 
-Install **NGINX Ingress Controller**.
+Install NGINX ingress controller.
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 ```
 
-Verify controller pods.
+Verify the controller.
 
 ```bash
 kubectl get pods -n ingress-nginx
 ```
 
-Wait until the controller is **Running**.
+Wait until the pods are **Running**.
 
 ---
 
-# Step 7: Configure Local DNS
+# Step 8 — Configure Local DNS
 
-Get ingress IP.
+Get the ingress IP.
 
 ```bash
 kubectl get ingress
@@ -243,13 +179,19 @@ Example output:
 wisecow-ingress   wisecow.example.com   192.168.49.2
 ```
 
-Add this entry to `/etc/hosts`.
+Edit the hosts file.
 
 ```bash
 sudo nano /etc/hosts
 ```
 
-Add:
+Add the following entry:
+
+```
+<INGRESS-IP>   wisecow.example.com
+```
+
+Example:
 
 ```
 192.168.49.2   wisecow.example.com
@@ -257,19 +199,19 @@ Add:
 
 ---
 
-# Step 8: Test HTTPS Access
+# Step 9 — Test the Application
 
-Test using curl.
+Test HTTPS access.
 
 ```bash
 curl -k https://wisecow.example.com
 ```
 
-The `-k` option ignores the self-signed certificate warning.
+The `-k` flag skips certificate verification since this is a self-signed certificate.
 
 ---
 
-# Verification Commands
+# Useful Verification Commands
 
 Check pods
 
@@ -277,7 +219,7 @@ Check pods
 kubectl get pods
 ```
 
-Check service
+Check services
 
 ```bash
 kubectl get svc
@@ -297,25 +239,13 @@ kubectl get secrets
 
 ---
 
-# Key Kubernetes Concepts Used
-
-| Component          | Purpose                          |
-| ------------------ | -------------------------------- |
-| Deployment         | Manages application pods         |
-| Service            | Provides internal cluster access |
-| Ingress            | Routes external traffic          |
-| TLS Secret         | Stores SSL certificate           |
-| Ingress Controller | Implements routing rules         |
-
----
-
-# End Goal
+# Result
 
 The Wisecow application is successfully:
 
-* Containerized using Docker
-* Deployed on Kubernetes
-* Exposed using Ingress
-* Secured with TLS encryption
+- Containerized using Docker
+- Deployed on Kubernetes
+- Exposed using Kubernetes Ingress
+- Secured with TLS (HTTPS)
 
-This demonstrates a **complete DevOps workflow for secure containerized application deployment**.
+This setup demonstrates a **secure containerized application deployment using Kubernetes**.
